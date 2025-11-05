@@ -3,6 +3,7 @@ const zod = require('zod');
 const { User, Account } = require('../db');
 const { JWT_SECRET } = require('../config');
 const jwt = require('jsonwebtoken');
+const { authMiddleware } = require('../middleware');
 const userRouter = express.Router();
 
 const signupSchema = zod.object({
@@ -62,11 +63,11 @@ userRouter.post("/signin", async (req,res)=> {
         userName: body.userName,
         password: body.password
     })
-    // if (!existingUser) {
-    //     return res.status(411).json({
-    //         message:"email already taken / incorrect inputs"
-    //     })
-    // }
+    if (!existingUser) {
+        return res.status(411).json({
+            message:"Invalid credentials"
+        })
+    }
     const token = jwt.sign({
         userId: existingUser._id
     }, JWT_SECRET)
@@ -74,12 +75,8 @@ userRouter.post("/signin", async (req,res)=> {
         message: "User signed in successfully",
         token: token
     })
-    res.status(411).json({
-    message: "Error while logging in"
-    })
-  
 });
-userRouter.put("/update", async (req,res)=> {
+userRouter.put("/update", authMiddleware, async (req,res)=> {
     const body = req.body;
     const {success} = signupSchema.safeParse(body);
     if(!success) {
